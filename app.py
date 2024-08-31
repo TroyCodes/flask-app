@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, render_template
 import joblib
 import numpy as np
 import requests
@@ -14,7 +14,17 @@ scaler = joblib.load('scaler.pkl')
 # BetsAPI key (replace with your actual key)
 API_KEY = "201236-lgg61IvF4XDXE2"
 
-# Function to get live odds from BetsAPI
+# Function to get live tennis matches from BetsAPI
+def get_live_tennis_matches():
+    url = f"https://api.betsapi.com/v1/bet365/inplay_filter?sport_id=13&token={API_KEY}"
+    response = requests.get(url)
+    data = response.json()
+    matches = []
+    if 'results' in data:
+        matches = data['results']
+    return matches
+
+# Function to get live odds from BetsAPI for a specific event
 def get_live_odds(event_id):
     url = f"https://api.betsapi.com/v1/bet365/event?token={API_KEY}&FI={event_id}"
     response = requests.get(url)
@@ -40,42 +50,51 @@ def is_bet_favorable(model_probability, odds, threshold=0.0):
 
 @app.route('/')
 def index():
-    return "Hello, this is your Flask app running with betting predictions!"
+    return '''
+    <h1>Welcome to the Betting App</h1>
+    <p><a href="/favorable_bets">Check Favorable Tennis Bets</a></p>
+    '''
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    data = request.json
-    input_data = np.array(data['features']).reshape(1, -1)
-    event_id = data['event_id']  # Event ID for fetching live odds
-    
-    # Get live odds
-    odds = get_live_odds(event_id)
-    
-    if odds is None:
-        return jsonify({"error": "Could not fetch odds"}), 400
-    
-    # Standardize the input data
-    input_data_scaled = scaler.transform(input_data)
-    
-    # Make predictions with each model
-    rf_preds = original_xgb_model.predict_proba(input_data_scaled)[:, 1]
-    gb_preds = tuned_xgb_model.predict_proba(input_data_scaled)[:, 1]
-    
-    # Combine predictions
-    final_preds = 0.7 * rf_preds + 0.3 * gb_preds
-    
-    # Determine if the bet is favorable
-    model_probability = final_preds[0]
-    favorable, ev = is_bet_favorable(model_probability, odds)
-    
-    result = {
-        'model_probability': model_probability,
-        'implied_probability': implied_probability(odds),
-        'expected_value': ev,
-        'favorable': favorable
-    }
-    
-    return jsonify(result)
+@app.route('/favorable_bets')
+def show_favorable_bets():
+    matches = get_live_tennis_matches()
+    favorable_bets = []
+
+    for match in matches:
+        event_id = match['id']
+        # Example feature array for model input (this needs to be adapted based on your model's requirements)
+        features = np.random.rand(10)  # Replace with actual features
+
+        # Standardize the input data
+        input_data_scaled = scaler.transform([features])
+
+        # Get live odds
+        odds = get_live_odds(event_id)
+        if odds is None:
+            continue
+
+        # Make predictions with each model
+        rf_preds = original_xgb_model.predict_proba(input_data_scaled)[:, 1]
+        gb_preds = tuned_xgb_model.predict_proba(input_data_scaled)[:, 1]
+
+        # Combine predictions
+        final_preds = 0.7 * rf_preds + 0.3 * gb_preds
+
+        # Determine if the bet is favorable
+        model_probability = final_preds[0]
+        favorable, ev = is_bet_favorable(model_probability, odds)
+
+        if favorable:
+            favorable_bets.append({
+                'event_id': event_id,
+                'match': match['home']['name'] + ' vs ' + match['away']['name'],
+                'model_probability': model_probability,
+                'implied_probability': implied_probability(odds),
+                'odds': odds,
+                'expected_value': ev
+            })
+
+    return render_template('favorable_bets.html', favorable_bets=favorable_bets)
 
 if __name__ == '__main__':
     app.run(debug=True)

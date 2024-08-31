@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favorable Bets</title>
+</head>
+<body>
+    <h1>Favorable Bets</h1>
+    {% if favorable_bets %}
+        <table border="1">
+            <tr>
+                <th>Event ID</th>
+                <th>Model Probability</th>
+                <th>Implied Probability</th>
+                <th>Odds</th>
+                <th>Expected Value</th>
+            </tr>
+            {% for bet in favorable_bets %}
+            <tr>
+                <td>{{ bet.event_id }}</td>
+                <td>{{ bet.model_probability }}</td>
+                <td>{{ bet.implied_probability }}</td>
+                <td>{{ bet.odds }}</td>
+                <td>{{ bet.expected_value }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No favorable bets found.</p>
+    {% endif %}
+</body>
+</html>
