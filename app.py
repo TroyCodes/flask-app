@@ -20,7 +20,7 @@ API_BASE_URL = 'https://api.b365api.com/v1'
 def get_upcoming_tennis_matches():
     endpoint = f"{API_BASE_URL}/bet365/upcoming"
     params = {
-        'sport_id': 13,  # Assuming 13 is the SPORT_ID for Tennis; verify with API docs
+        'sport_id': 13,  # SPORT_ID for Tennis
         'token': API_TOKEN,
         'page': 1  # Pagination if there are multiple pages of results
     }
@@ -74,6 +74,15 @@ def extract_features(match):
 @app.route('/')
 def home():
     return render_template('index.html')
+
+@app.route('/upcoming_matches')
+def show_upcoming_matches():
+    try:
+        matches = get_upcoming_tennis_matches()
+        return render_template('upcoming_matches.html', matches=matches)
+    except Exception as e:
+        print(f"Error: {e}")
+        return f"An error occurred while processing your request: {e}", 500
 
 @app.route('/favorable_bets')
 def show_favorable_bets():

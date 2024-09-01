@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upcoming Tennis Matches</title>
+</head>
+<body>
+    <h1>Upcoming Tennis Matches</h1>
+    {% if matches %}
+        <ul>
+            {% for match in matches %}
+                <li>
+                    {{ match.home.name }} vs {{ match.away.name }}<br>
+                    Start Time: {{ match.time | timestamp_to_datetime }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No upcoming matches found.</p>
+    {% endif %}
+    <a href="/">Back to Home</a>
+</body>
+</html>
