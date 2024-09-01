@@ -20,7 +20,7 @@ API_BASE_URL = 'https://api.b365api.com/v3'
 def get_upcoming_tennis_matches():
     endpoint = f"{API_BASE_URL}/bet365/upcoming"
     params = {
-        'sport_id': 13,  # Assuming 13 is the SPORT_ID for Tennis; verify with API docs
+        'sport_id': 13,  # SPORT_ID for Tennis according to the API docs
         'token': API_TOKEN
     }
     response = requests.get(endpoint, params=params)
@@ -33,17 +33,17 @@ def get_upcoming_tennis_matches():
 
 # Function to fetch odds for a given event
 def get_event_odds(event_id):
-    endpoint = f"{API_BASE_URL}/event/odds"
+    endpoint = f"{API_BASE_URL}/bet365/prematch"
     params = {
         'token': API_TOKEN,
-        'event_id': event_id
+        'FI': event_id
     }
     response = requests.get(endpoint, params=params)
 
     if response.status_code == 200:
         data = response.json()
         if data.get('success'):
-            return data.get('results', {}).get('odds', {})
+            return data.get('results', {}).get('main', {}).get('odds', {})
     return {}
 
 # Function to check if a bet is favorable
@@ -57,19 +57,13 @@ def is_bet_favorable(model_probability, odds):
 
 # Function to extract features from the match data
 def extract_features(match):
-    # Example feature extraction (modify according to your model's requirements)
-    # Replace these with actual features used in your model
     home_ranking = match.get('home', {}).get('ranking', 0)
     away_ranking = match.get('away', {}).get('ranking', 0)
-    # Add more feature extraction logic here based on your model's requirements
-
-    # Example: features list (ensure it matches the model's expected input)
     features = [
         home_ranking,
         away_ranking,
-        # Add other features here...
+        # Add other features here as per your model's requirement
     ]
-
     return features
 
 @app.route('/')
@@ -88,18 +82,14 @@ def show_favorable_bets():
             if not event_id:
                 continue
 
-            # Extract features for prediction
             features = extract_features(match)
 
-            # Ensure the correct number of features for your model
-            EXPECTED_FEATURES = 28  # Update this based on your model
+            EXPECTED_FEATURES = 28  # Update this based on your model's feature count
             if len(features) != EXPECTED_FEATURES:
                 continue
 
-            # Standardize the input data
             input_data_scaled = scaler.transform([features])
 
-            # Get live odds
             odds_data = get_event_odds(event_id)
             if not odds_data:
                 continue
@@ -108,14 +98,10 @@ def show_favorable_bets():
             if not odds:
                 continue
 
-            # Make predictions with each model
             rf_preds = original_xgb_model.predict_proba(input_data_scaled)[:, 1]
             gb_preds = tuned_xgb_model.predict_proba(input_data_scaled)[:, 1]
-
-            # Combine predictions (adjust weights as necessary)
             final_preds = 0.7 * rf_preds + 0.3 * gb_preds
 
-            # Determine if the bet is favorable
             model_probability = final_preds[0]
             favorable, ev = is_bet_favorable(model_probability, odds)
 
