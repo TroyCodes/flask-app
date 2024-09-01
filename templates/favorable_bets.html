@@ -3,19 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Favorable Bets</title>
+    <title>All Bets and Favorable Bets</title>
 </head>
 <body>
-    <h1>Favorable Bets</h1>
-    {% if bets %}
+    <h1>All Tennis Bets</h1>
+    {% if all_bets %}
         <ul>
-            {% for bet in bets %}
-                <li>{{ bet['event_name'] }}: {{ bet['odds'] }}</li>
+            {% for bet in all_bets %}
+                <li>{{ bet.match }} - Odds: {{ bet.odds }} - Model Probability: {{ bet.model_probability }} - Expected Value: {{ bet.expected_value }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No bets found.</p>
+    {% endif %}
+
+    <h1>Favorable Bets</h1>
+    {% if favorable_bets %}
+        <ul>
+            {% for bet in favorable_bets %}
+                <li>{{ bet.match }} - Odds: {{ bet.odds }} - Model Probability: {{ bet.model_probability }} - Expected Value: {{ bet.expected_value }}</li>
             {% endfor %}
         </ul>
     {% else %}
         <p>No favorable bets found.</p>
     {% endif %}
+
     <a href="{{ url_for('home') }}">Back to Home</a>
 </body>
 </html>

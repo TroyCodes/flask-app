@@ -13,7 +13,7 @@ tuned_xgb_model = joblib.load(os.path.join(MODEL_DIR, 'tuned_xgb_model.pkl'))
 scaler = joblib.load(os.path.join(MODEL_DIR, 'scaler.pkl'))
 
 # API configuration
-API_TOKEN = 'YOUR-TOKEN'  # Replace with your actual BetsAPI token
+API_TOKEN = '201236-lgg61IvF4XDXE2'  # Replace with your actual BetsAPI token
 API_BASE_URL = 'https://api.b365api.com/v3'
 
 # Function to fetch upcoming tennis matches
@@ -80,6 +80,7 @@ def home():
 def show_favorable_bets():
     try:
         matches = get_upcoming_tennis_matches()
+        all_bets = []
         favorable_bets = []
 
         for match in matches:
@@ -91,7 +92,6 @@ def show_favorable_bets():
             features = extract_features(match)
 
             # Ensure the correct number of features for your model
-            # Replace '28' with the actual number of features your model expects
             EXPECTED_FEATURES = 28  # Update this based on your model
             if len(features) != EXPECTED_FEATURES:
                 continue
@@ -104,8 +104,6 @@ def show_favorable_bets():
             if not odds_data:
                 continue
 
-            # Assuming 'odds' is a key in odds_data containing the relevant odds
-            # Modify this based on the actual structure of the odds_data
             odds = odds_data.get('odds', None)
             if not odds:
                 continue
@@ -121,17 +119,21 @@ def show_favorable_bets():
             model_probability = final_preds[0]
             favorable, ev = is_bet_favorable(model_probability, odds)
 
-            if favorable:
-                favorable_bets.append({
-                    'event_id': event_id,
-                    'match': f"{match.get('home', {}).get('name', 'Home')} vs {match.get('away', {}).get('name', 'Away')}",
-                    'model_probability': round(model_probability, 4),
-                    'implied_probability': round(1 / float(odds), 4),
-                    'odds': odds,
-                    'expected_value': ev
-                })
+            bet_info = {
+                'event_id': event_id,
+                'match': f"{match.get('home', {}).get('name', 'Home')} vs {match.get('away', {}).get('name', 'Away')}",
+                'model_probability': round(model_probability, 4),
+                'implied_probability': round(1 / float(odds), 4),
+                'odds': odds,
+                'expected_value': ev
+            }
 
-        return render_template('favorable_bets.html', favorable_bets=favorable_bets)
+            all_bets.append(bet_info)
+
+            if favorable:
+                favorable_bets.append(bet_info)
+
+        return render_template('favorable_bets.html', all_bets=all_bets, favorable_bets=favorable_bets)
 
     except Exception as e:
         print(f"Error: {e}")
