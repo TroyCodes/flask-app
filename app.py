@@ -55,19 +55,31 @@ def index():
     <p><a href="/favorable_bets">Check Favorable Tennis Bets</a></p>
     '''
 def extract_features(match):
-    # Example of generating features, adjust as necessary
-    features = []
-    
-    # Add various features based on match data
-    features.append(match['home']['ranking'])
-    features.append(match['away']['ranking'])
-    # Add more features to match the number used in training...
-    
-    # Ensure the length of the feature vector is exactly 28
-    if len(features) < 28:
-        features.extend([0] * (28 - len(features)))  # Pad with zeros if necessary
+    try:
+        # Extract features with safe access to 'ranking'
+        home_ranking = match['home'].get('ranking', -1)  # Use -1 or another default if 'ranking' is missing
+        away_ranking = match['away'].get('ranking', -1)  # Use -1 or another default if 'ranking' is missing
 
-    return features
+        # Continue extracting other features...
+        # Assuming you have more features to extract, handle them similarly
+        features = [
+            home_ranking,
+            away_ranking,
+            # Add other features here
+        ]
+
+        if len(features) != 28:  # Adjust this based on your feature count
+            raise ValueError(f"Expected 28 features, but got {len(features)}")
+
+        return features
+
+    except KeyError as e:
+        print(f"KeyError: Missing key {e}")
+        raise ValueError(f"Missing key in match data: {e}")
+
+    except Exception as e:
+        print(f"Error during feature extraction: {e}")
+        raise
 
 @app.route('/favorable_bets')
 def show_favorable_bets():
@@ -78,11 +90,8 @@ def show_favorable_bets():
         for match in matches:
             event_id = match['id']
 
-            # Implement your feature extraction logic here
-            features = extract_features(match)  # This should return a list of 28 features
-
-            if len(features) != 28:
-                raise ValueError(f"Expected 28 features, but got {len(features)}")
+            # Safely extract features
+            features = extract_features(match)
 
             # Standardize the input data
             input_data_scaled = scaler.transform([features])
