@@ -73,7 +73,12 @@ def extract_features(match):
 # Custom Jinja filter to convert Unix timestamp to datetime
 @app.template_filter('timestamp_to_datetime')
 def timestamp_to_datetime_filter(timestamp):
-    return datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+    try:
+        # Convert the string timestamp to an integer first
+        timestamp = int(timestamp)
+        return datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        return timestamp  # In case conversion fails, return the original string
 
 @app.route('/')
 def home():
