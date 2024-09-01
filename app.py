@@ -20,15 +20,20 @@ API_BASE_URL = 'https://api.b365api.com/v3'
 def get_upcoming_tennis_matches():
     endpoint = f"{API_BASE_URL}/bet365/upcoming"
     params = {
-        'sport_id': 13,  # SPORT_ID for Tennis according to the API docs
+        'sport_id': 13,  # Assuming 13 is the SPORT_ID for Tennis; verify with API docs
         'token': API_TOKEN
     }
     response = requests.get(endpoint, params=params)
 
     if response.status_code == 200:
         data = response.json()
+        print("API Response Data:", data)  # Debugging print
         if data.get('success'):
             return data.get('results', [])
+        else:
+            print("API Response was not successful")
+    else:
+        print(f"Failed to fetch matches, status code: {response.status_code}")
     return []
 
 # Function to fetch odds for a given event
@@ -42,29 +47,14 @@ def get_event_odds(event_id):
 
     if response.status_code == 200:
         data = response.json()
+        print("Odds Data:", data)  # Debugging print
         if data.get('success'):
             return data.get('results', {}).get('main', {}).get('odds', {})
+        else:
+            print("Failed to fetch odds")
+    else:
+        print(f"Failed to fetch odds, status code: {response.status_code}")
     return {}
-
-# Function to check if a bet is favorable
-def is_bet_favorable(model_probability, odds):
-    try:
-        implied_probability = 1 / float(odds)
-        expected_value = model_probability * float(odds) - 1
-        return expected_value > 0, round(expected_value, 4)
-    except (ZeroDivisionError, ValueError, TypeError):
-        return False, 0
-
-# Function to extract features from the match data
-def extract_features(match):
-    home_ranking = match.get('home', {}).get('ranking', 0)
-    away_ranking = match.get('away', {}).get('ranking', 0)
-    features = [
-        home_ranking,
-        away_ranking,
-        # Add other features here as per your model's requirement
-    ]
-    return features
 
 @app.route('/')
 def home():
@@ -74,8 +64,12 @@ def home():
 def show_favorable_bets():
     try:
         matches = get_upcoming_tennis_matches()
+        print("Fetched Matches:", matches)  # Debugging print
         all_bets = []
         favorable_bets = []
+
+        if not matches:
+            print("No matches found")  # Debugging print
 
         for match in matches:
             event_id = match.get('id')
@@ -83,13 +77,11 @@ def show_favorable_bets():
                 continue
 
             features = extract_features(match)
-
             EXPECTED_FEATURES = 28  # Update this based on your model's feature count
             if len(features) != EXPECTED_FEATURES:
                 continue
 
             input_data_scaled = scaler.transform([features])
-
             odds_data = get_event_odds(event_id)
             if not odds_data:
                 continue
