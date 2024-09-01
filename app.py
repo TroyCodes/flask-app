@@ -95,6 +95,8 @@ def show_upcoming_matches():
 def show_favorable_bets():
     try:
         matches = get_upcoming_tennis_matches()
+        print(f"Fetched Matches: {matches}")  # Debugging line
+        
         all_bets = []
         favorable_bets = []
 
@@ -103,14 +105,19 @@ def show_favorable_bets():
             if not event_id:
                 continue
 
+            # Extract features for prediction
             features = extract_features(match)
-            EXPECTED_FEATURES = 28
+
+            EXPECTED_FEATURES = 28  # Update this based on your model
             if len(features) != EXPECTED_FEATURES:
                 continue
 
+            # Standardize the input data
             input_data_scaled = scaler.transform([features])
 
+            # Get live odds
             odds_data = get_event_odds(event_id)
+            print(f"Fetched Odds for Event ID {event_id}: {odds_data}")  # Debugging line
             if not odds_data:
                 continue
 
@@ -118,6 +125,7 @@ def show_favorable_bets():
             if not odds:
                 continue
 
+            # Make predictions with each model
             rf_preds = original_xgb_model.predict_proba(input_data_scaled)[:, 1]
             gb_preds = tuned_xgb_model.predict_proba(input_data_scaled)[:, 1]
 
@@ -139,6 +147,9 @@ def show_favorable_bets():
 
             if favorable:
                 favorable_bets.append(bet_info)
+
+        print(f"All Bets: {all_bets}")  # Debugging line
+        print(f"Favorable Bets: {favorable_bets}")  # Debugging line
 
         return render_template('favorable_bets.html', all_bets=all_bets, favorable_bets=favorable_bets)
 
