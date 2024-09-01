@@ -54,6 +54,20 @@ def index():
     <h1>Welcome to the Betting App</h1>
     <p><a href="/favorable_bets">Check Favorable Tennis Bets</a></p>
     '''
+def extract_features(match):
+    # Example of generating features, adjust as necessary
+    features = []
+    
+    # Add various features based on match data
+    features.append(match['home']['ranking'])
+    features.append(match['away']['ranking'])
+    # Add more features to match the number used in training...
+    
+    # Ensure the length of the feature vector is exactly 28
+    if len(features) < 28:
+        features.extend([0] * (28 - len(features)))  # Pad with zeros if necessary
+
+    return features
 
 @app.route('/favorable_bets')
 def show_favorable_bets():
@@ -63,7 +77,12 @@ def show_favorable_bets():
 
         for match in matches:
             event_id = match['id']
-            features = np.random.rand(10)  # Replace with actual features
+
+            # Assume that the feature extraction logic generates 28 features
+            features = extract_features(match)  # You need to implement this
+
+            if len(features) != 28:
+                raise ValueError(f"Expected 28 features, but got {len(features)}")
 
             # Standardize the input data
             input_data_scaled = scaler.transform([features])
@@ -96,6 +115,9 @@ def show_favorable_bets():
 
         return render_template('favorable_bets.html', favorable_bets=favorable_bets)
 
+    except ValueError as ve:
+        print(f"ValueError: {ve}")
+        return f"An error occurred: {ve}"
     except Exception as e:
         print(f"Error: {e}")
         return "An error occurred while processing your request."
