@@ -3,6 +3,7 @@ import requests
 import joblib
 from sklearn.preprocessing import StandardScaler
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -58,10 +59,8 @@ def is_bet_favorable(model_probability, odds):
 
 # Function to extract features from the match data
 def extract_features(match):
-    # Example feature extraction (modify according to your model's requirements)
     home_ranking = match.get('home', {}).get('ranking', 0)
     away_ranking = match.get('away', {}).get('ranking', 0)
-    # Add more feature extraction logic here based on your model's requirements
 
     features = [
         home_ranking,
@@ -70,6 +69,11 @@ def extract_features(match):
     ]
 
     return features
+
+# Custom Jinja filter to convert Unix timestamp to datetime
+@app.template_filter('timestamp_to_datetime')
+def timestamp_to_datetime_filter(timestamp):
+    return datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
 @app.route('/')
 def home():
@@ -99,7 +103,6 @@ def show_favorable_bets():
             # Extract features for prediction
             features = extract_features(match)
 
-            # Ensure the correct number of features for your model
             EXPECTED_FEATURES = 28  # Update this based on your model
             if len(features) != EXPECTED_FEATURES:
                 continue
@@ -120,7 +123,6 @@ def show_favorable_bets():
             rf_preds = original_xgb_model.predict_proba(input_data_scaled)[:, 1]
             gb_preds = tuned_xgb_model.predict_proba(input_data_scaled)[:, 1]
 
-            # Combine predictions (adjust weights as necessary)
             final_preds = 0.7 * rf_preds + 0.3 * gb_preds
 
             # Determine if the bet is favorable
