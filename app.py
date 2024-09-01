@@ -105,11 +105,20 @@ def show_favorable_bets():
             if not event_id:
                 continue
 
+            # Ensure required fields are present
+            required_fields = ['home', 'away', 'league']
+            missing_fields = [field for field in required_fields if field not in match or not match[field]]
+            if missing_fields:
+                print(f"Missing fields {missing_fields} for Event ID {event_id}")
+                continue
+
             # Extract features for prediction
             features = extract_features(match)
+            print(f"Features for Event ID {event_id}: {features}")  # Debugging line
 
-            EXPECTED_FEATURES = 28  # Update this based on your model
+            EXPECTED_FEATURES = 2  # Adjust this to match your feature extraction
             if len(features) != EXPECTED_FEATURES:
+                print(f"Expected {EXPECTED_FEATURES} features, got {len(features)} for Event ID {event_id}")
                 continue
 
             # Standardize the input data
@@ -123,6 +132,7 @@ def show_favorable_bets():
 
             odds = odds_data.get('odds', None)
             if not odds:
+                print(f"No odds data for Event ID {event_id}")
                 continue
 
             # Make predictions with each model
