@@ -78,8 +78,8 @@ def show_favorable_bets():
         for match in matches:
             event_id = match['id']
 
-            # Assume that the feature extraction logic generates 28 features
-            features = extract_features(match)  # You need to implement this
+            # Implement your feature extraction logic here
+            features = extract_features(match)  # This should return a list of 28 features
 
             if len(features) != 28:
                 raise ValueError(f"Expected 28 features, but got {len(features)}")
@@ -116,11 +116,13 @@ def show_favorable_bets():
         return render_template('favorable_bets.html', favorable_bets=favorable_bets)
 
     except ValueError as ve:
-        print(f"ValueError: {ve}")
-        return f"An error occurred: {ve}"
+        error_message = f"ValueError: {ve}"
+        print(error_message)
+        return f"An error occurred: {ve}", 500  # Return a more detailed error to the user
     except Exception as e:
-        print(f"Error: {e}")
-        return "An error occurred while processing your request."
+        error_message = f"Error: {e}"
+        print(error_message)
+        return f"An error occurred while processing your request: {e}", 500  # Return a more detailed error to the user
 
 if __name__ == '__main__':
     app.run(debug=True)
