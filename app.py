@@ -1,85 +1,62 @@
-from flask import Flask, render_template
-import joblib
-import numpy as np
+from flask import Flask, render_template, request
 import requests
-import xgboost as xgb
+import joblib
+from sklearn.preprocessing import StandardScaler
+import os
 
 app = Flask(__name__)
 
-# Load the original XGBoost model and the updated tuned XGBoost model
+# Load pre-trained models and scaler
 original_xgb_model = joblib.load('original_xgb_model.pkl')
 tuned_xgb_model = joblib.load('tuned_xgb_model.pkl')
 scaler = joblib.load('scaler.pkl')
 
-# BetsAPI key (replace with your actual key)
-API_KEY = "201236-lgg61IvF4XDXE2"
+# API configuration
+API_TOKEN = '201236-lgg61IvF4XDXE2'  # Replace with your actual token
+API_BASE_URL = 'https://api.b365api.com/v3'
 
-# Function to get live tennis matches from BetsAPI
+# Function to fetch live tennis matches
 def get_live_tennis_matches():
-    url = f"https://api.betsapi.com/v1/bet365/inplay_filter?sport_id=13&token={API_KEY}"
-    response = requests.get(url)
-    data = response.json()
-    matches = []
-    if 'results' in data:
-        matches = data['results']
-    return matches
+    endpoint = f"{API_BASE_URL}/events/upcoming?sport_id=13&token={API_TOKEN}"
+    response = requests.get(endpoint)
 
-# Function to get live odds from BetsAPI for a specific event
+    if response.status_code == 200:
+        data = response.json()
+        if data['success']:
+            return data['results']
+    return []
+
+# Function to fetch live odds for a given event
 def get_live_odds(event_id):
-    url = f"https://api.betsapi.com/v1/bet365/event?token={API_KEY}&FI={event_id}"
-    response = requests.get(url)
-    data = response.json()
-    try:
-        odds = data['results'][0]['odds']['full_time']['home']  # Example: fetching home win odds
-    except (KeyError, IndexError):
-        odds = None
-    return odds
+    endpoint = f"{API_BASE_URL}/event/odds?token={API_TOKEN}&event_id={event_id}"
+    response = requests.get(endpoint)
 
-# Function to calculate implied probability from odds
-def implied_probability(odds):
-    return 1 / odds
+    if response.status_code == 200:
+        data = response.json()
+        if data['success']:
+            return data['results']['odds']
+    return None
 
-# Function to calculate expected value
-def expected_value(model_probability, odds):
-    return (model_probability * odds) - (1 - model_probability)
+# Function to check if a bet is favorable
+def is_bet_favorable(model_probability, odds):
+    implied_probability = 1 / odds
+    expected_value = model_probability * odds - 1
+    return expected_value > 0, expected_value
 
-# Function to determine if the bet is favorable
-def is_bet_favorable(model_probability, odds, threshold=0.0):
-    ev = expected_value(model_probability, odds)
-    return ev > threshold, ev
-
-@app.route('/')
-def index():
-    return '''
-    <h1>Welcome to the Betting App</h1>
-    <p><a href="/favorable_bets">Check Favorable Tennis Bets</a></p>
-    '''
+# Function to extract features from the match data
 def extract_features(match):
-    try:
-        # Extract features with safe access to 'ranking'
-        home_ranking = match['home'].get('ranking', -1)  # Use -1 or another default if 'ranking' is missing
-        away_ranking = match['away'].get('ranking', -1)  # Use -1 or another default if 'ranking' is missing
+    # Example feature extraction (modify according to your data needs)
+    home_ranking = match['home'].get('ranking', -1)
+    away_ranking = match['away'].get('ranking', -1)
+    
+    # Add more feature extraction logic here based on your model's requirements
+    features = [
+        home_ranking,
+        away_ranking,
+        # Add other features here...
+    ]
 
-        # Continue extracting other features...
-        # Assuming you have more features to extract, handle them similarly
-        features = [
-            home_ranking,
-            away_ranking,
-            # Add other features here
-        ]
-
-        if len(features) != 28:  # Adjust this based on your feature count
-            raise ValueError(f"Expected 28 features, but got {len(features)}")
-
-        return features
-
-    except KeyError as e:
-        print(f"KeyError: Missing key {e}")
-        raise ValueError(f"Missing key in match data: {e}")
-
-    except Exception as e:
-        print(f"Error during feature extraction: {e}")
-        raise
+    return features
 
 @app.route('/favorable_bets')
 def show_favorable_bets():
@@ -90,8 +67,12 @@ def show_favorable_bets():
         for match in matches:
             event_id = match['id']
 
-            # Safely extract features
+            # Extract features for prediction
             features = extract_features(match)
+
+            # Ensure the correct number of features for your model
+            if len(features) != 28:
+                continue
 
             # Standardize the input data
             input_data_scaled = scaler.transform([features])
@@ -117,21 +98,16 @@ def show_favorable_bets():
                     'event_id': event_id,
                     'match': match['home']['name'] + ' vs ' + match['away']['name'],
                     'model_probability': model_probability,
-                    'implied_probability': implied_probability(odds),
+                    'implied_probability': 1 / odds,
                     'odds': odds,
                     'expected_value': ev
                 })
 
         return render_template('favorable_bets.html', favorable_bets=favorable_bets)
 
-    except ValueError as ve:
-        error_message = f"ValueError: {ve}"
-        print(error_message)
-        return f"An error occurred: {ve}", 500  # Return a more detailed error to the user
     except Exception as e:
-        error_message = f"Error: {e}"
-        print(error_message)
-        return f"An error occurred while processing your request: {e}", 500  # Return a more detailed error to the user
+        print(f"Error: {e}")
+        return f"An error occurred while processing your request: {e}", 500
 
 if __name__ == '__main__':
     app.run(debug=True)
