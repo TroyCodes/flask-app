@@ -14,16 +14,16 @@ tuned_xgb_model = joblib.load(os.path.join(MODEL_DIR, 'tuned_xgb_model.pkl'))
 scaler = joblib.load(os.path.join(MODEL_DIR, 'scaler.pkl'))
 
 # API configuration
-API_TOKEN = '201236-lgg61IvF4XDXE2'  # Replace with your actual BetsAPI token
+API_TOKEN = '201236-lgg61IvF4XDXE2'
 API_BASE_URL = 'https://api.b365api.com/v1'
 
 # Function to fetch upcoming tennis matches
 def get_upcoming_tennis_matches():
     endpoint = f"{API_BASE_URL}/bet365/upcoming"
     params = {
-        'sport_id': 13,  # SPORT_ID for Tennis
+        'sport_id': 13,
         'token': API_TOKEN,
-        'page': 1  # Pagination if there are multiple pages of results
+        'page': 1
     }
     response = requests.get(endpoint, params=params)
 
@@ -65,7 +65,6 @@ def extract_features(match):
     features = [
         home_ranking,
         away_ranking,
-        # Add other features here...
     ]
 
     return features
@@ -74,11 +73,10 @@ def extract_features(match):
 @app.template_filter('timestamp_to_datetime')
 def timestamp_to_datetime_filter(timestamp):
     try:
-        # Convert the string timestamp to an integer first
         timestamp = int(timestamp)
         return datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
     except ValueError:
-        return timestamp  # In case conversion fails, return the original string
+        return timestamp
 
 @app.route('/')
 def home():
@@ -105,17 +103,13 @@ def show_favorable_bets():
             if not event_id:
                 continue
 
-            # Extract features for prediction
             features = extract_features(match)
-
-            EXPECTED_FEATURES = 28  # Update this based on your model
+            EXPECTED_FEATURES = 28
             if len(features) != EXPECTED_FEATURES:
                 continue
 
-            # Standardize the input data
             input_data_scaled = scaler.transform([features])
 
-            # Get live odds
             odds_data = get_event_odds(event_id)
             if not odds_data:
                 continue
@@ -124,13 +118,11 @@ def show_favorable_bets():
             if not odds:
                 continue
 
-            # Make predictions with each model
             rf_preds = original_xgb_model.predict_proba(input_data_scaled)[:, 1]
             gb_preds = tuned_xgb_model.predict_proba(input_data_scaled)[:, 1]
 
             final_preds = 0.7 * rf_preds + 0.3 * gb_preds
 
-            # Determine if the bet is favorable
             model_probability = final_preds[0]
             favorable, ev = is_bet_favorable(model_probability, odds)
 

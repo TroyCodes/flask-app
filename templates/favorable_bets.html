@@ -3,31 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>All Bets and Favorable Bets</title>
+    <title>Favorable Tennis Bets</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
-    <h1>All Tennis Bets</h1>
-    {% if all_bets %}
-        <ul>
-            {% for bet in all_bets %}
-                <li>{{ bet.match }} - Odds: {{ bet.odds }} - Model Probability: {{ bet.model_probability }} - Expected Value: {{ bet.expected_value }}</li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No bets found.</p>
-    {% endif %}
+    <div class="container mt-5">
+        <h2 class="text-center">Favorable Tennis Bets</h2>
+        {% if favorable_bets %}
+        <h4>Highly Favorable Bets</h4>
+        <table class="table table-striped mt-4">
+            <thead>
+                <tr>
+                    <th scope="col">Match</th>
+                    <th scope="col">Model Probability</th>
+                    <th scope="col">Odds</th>
+                    <th scope="col">Expected Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bet in favorable_bets %}
+                <tr>
+                    <td>{{ bet.match }}</td>
+                    <td>{{ bet.model_probability }}</td>
+                    <td>{{ bet.odds }}</td>
+                    <td>{{ bet.expected_value }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No favorable bets found at this time.</p>
+        {% endif %}
 
-    <h1>Favorable Bets</h1>
-    {% if favorable_bets %}
-        <ul>
-            {% for bet in favorable_bets %}
-                <li>{{ bet.match }} - Odds: {{ bet.odds }} - Model Probability: {{ bet.model_probability }} - Expected Value: {{ bet.expected_value }}</li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No favorable bets found.</p>
-    {% endif %}
-
-    <a href="{{ url_for('home') }}">Back to Home</a>
+        <h4>All Bets</h4>
+<table class="table table-striped mt-4">
+    <thead>
+        <tr>
+            <th scope="col">Match</th>
+            <th scope="col">Model Probability</th>
+            <th scope="col">Implied Probability</th>
+            <th scope="col">Odds</th>
+            <th scope="col">Expected Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for bet in all_bets %}
+        <tr>
+            <td>{{ bet.match }}</td>
+            <td>{{ bet.model_probability }}</td>
+            <td>{{ bet.implied_probability }}</td>
+            <td>{{ bet.odds }}</td>
+            <td>{{ bet.expected_value }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
 </body>
 </html>
+
